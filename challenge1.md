@@ -2,7 +2,6 @@
 
 **Category:** GEOINT / OSINT  
 **Challenge:** Identify the lake in the middle of the provided world map image.  
-**Date:** 2025-10-12
 
 ---
 
