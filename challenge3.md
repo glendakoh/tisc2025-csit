@@ -9,7 +9,7 @@
 
 Uploading our gcode file to an online gcode viewer we get:
 
-![Rendered 3d object.](./3dPrint)
+![Rendered 3d object.](./3dPrint.png)
 
 We notice that the printer at a point deviates from printing the trophy and starts printing a random patch far away from the trophy. Zooming in on that part of the 3d print, we realise it corresponds to the following instructions in the gcode:
 
