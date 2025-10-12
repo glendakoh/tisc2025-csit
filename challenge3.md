@@ -1,4 +1,4 @@
-# TISC CSIT Challenge 2 — Rotary Precision
+# TISC CSIT Challenge 3 — Rotary Precision
 
 **Category:** Forensics
 **Challenge:** Analyse a gcode file and get the flag.
