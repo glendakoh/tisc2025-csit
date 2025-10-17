@@ -1,5 +1,7 @@
 # TISC CSIT 2025
 
-Really happy to complete level 8 of TISC 2025! Took the reverse engineering route this time and had my first memory exploits!
-Unfortunately, I did not have time to complete the writeups during the competition and am only doing it much after the competition ended. As such, this is a very brief writeup of some challenges where I kept some screenshots.
-Definitely need to work on better writeups in the future! 
+Really happy to have completed Level 8 of TISC 2025! 🎉
+This time, I took the reverse engineering route and even had my first experience with memory exploits!
+Unfortunately, I didn’t have time to write the full writeups during the competition, so I’m only doing them now, well after it ended.
+As such, this is just a brief summary of a few challenges where I managed to keep some screenshots.
+I’ll work on writing more complete and structured writeups in future competitions!
