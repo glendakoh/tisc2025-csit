@@ -189,14 +189,13 @@ Call swap() in a way that reads the elements pointer (step 1), then invokes a ge
 In the getter, delete setup-array, force GC so the region becomes free, then allocate:
 - a Uint8Array (inline) at the freed slot, and
 - a BigUint64Array (out-of-line header) in the same region.
+  
 Example layout of the exact same memory region after reallocation:
 ```css
 [Uint8Array] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [BigInt64Array] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] 
 ```
 
 When we reach step 4 and  we can end up swapping an element from Uint8Array with the pointer bits of the BigInt64Array since step4 uses the same pointer from step1 and allows swap anywhere within the length of the initial array. 
-
-Turns out we can delete the setup-array, call garbage collection to mark the space as free such that when we create Uint8Array and BigInt64Array they will be allocated to the newly freed space, thus taking the exact space initially taken by setup-array. 
 
 With a lot of try and error and debugging this was my final exploit script achieving arb read and write to any address we want. 
 
