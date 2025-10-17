@@ -54,6 +54,7 @@ I realised the input is being processed by parseMetrics(). From reversing and st
 1. the data pointer,
 2. the number of triples (length), and
 3. a checksum field.
+   
 Next, the function loops through the input slice, processing triples (each triple = 3 × 4-byte words). For each iteration, it copies the triple into an internal buffer and updates a running counter stored at puVar13[3].
 Once all triples are processed, the function XORs all the 4-byte words from the parsed data to generate a checksum. This computed checksum is then compared against the original checksum field from the input.
 
