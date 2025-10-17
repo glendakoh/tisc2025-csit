@@ -130,18 +130,14 @@ Before analysing this function, I did some research on SpiderMonkey exploits,pre
 
 The challenge seemed super similar to this one with the difference being the vulnerable added function. 
 
-Researching into SpiderMonkey, I learnt that there is an ArrayObject of type BigUint64Array and Uint8Array. As Uint8Array stores a minimum of a single byte it is possible to create in line Uint8Array but not for BigUint64Array. In line arrays mean that the elements in the array are stored immediately after the header data of the array while out of line array means that the header contains a pointer where the elements are actually stored in a different memory space. 
-
-This is extremely important as if we can control the pointer in the header of a BigUint64Array, we can get arbitrary read and write access to any part of the memory. 
-The inline possibility of Uint8Array is very useful as it allows us write to predictable addresses. Thus if we want to utilise writing to a Uint8Array to somehow overwrite the pointer of a BigUint64Array.
+Researching SpiderMonkey, I learned that arrays can be inline (elements stored immediately after the header) or out-of-line (header contains a pointer to a separate elements area). Uint8Array can often be inline (single-byte elements), while BigUint64Array is only out-of-line. This matters because if we can control a BigUint64Array’s elements pointer in its header, we can gain arbitrary read/write. The inline property of Uint8Array is useful because it allows predictable writes into the freed/allocated region. We can write bytewise with Uint8Array and control pointer bits for the BigUint64Array.
 
 Back to the ctf-writeup, after the arbitrary read and write they exploited a SpiderMonkey JIT optimization vulnerability: by repeatedly converting attacker-controlled byte sequences into JavaScript functions, they forced the engine’s runtime optimizer to compile those inputs into native code. Then they overwrite the pointer of a BigUint64Array to the new vulnerable compiled function causing RCE.
 
 Now, I am sure that our attack workflow will be the same except the way we get the arbitrary read and write will be different. Time for us to analyse diff.txt again.
 
 Our new Array.swap vuln function does 3 main steps :
-1. get the size of the array object we called swap on and get the pointer to the elements in the array object
-
+1. Get the array object length and the pointer to its elements:
 ```txt
 +  uint64_t capacity;
 +  capacity = nobj->getDenseCapacity();
@@ -149,7 +145,7 @@ Our new Array.swap vuln function does 3 main steps :
 +  const js::Value* elements2 = nobj->getDenseElements();
 ```
 
-2. Calls getproperty which calls the getter of the array object 
+2. Call GetProperty which invokes the getter of the array object:
 ```txt
  (!GetProperty(cx, obj, obj, fromId, &from)) {
 +      args.rval().setBoolean(false);
@@ -158,9 +154,9 @@ Our new Array.swap vuln function does 3 main steps :
 +
 ```
 
-3.  Check the to value and fromId (returned by the getter) returned in step2 is less than the length/capacity returned in step1
+3.  Verify the to and from values returned by the getter are less than length/capacity.
 
-4. Does a memcpy using the pointer returned in step 1(elements 2) and the, to and from, Ids returned by the getter in step 2
+4. Use elements2 (the pointer captured in step 1) and from/to to memcpy Values:
 ```txt
 +  {
 +    Value tmp = elements2[toVal]; 
@@ -181,25 +177,28 @@ Our new Array.swap vuln function does 3 main steps :
 +    args.rval().setBoolean(true);  
 +  }
 ```
-And we spot the vulnerability, the getter of the array object can be overwritten by javascript(user controlled)!
+And we spot the vulnerability, the getter (invoked in step 2) is attacker-controlled JavaScript!
 Given that the getter is called after the array pointer is returned in step1. This means that we can overwrite the getter with a javascript function that changes the memory layout such that the array pointer returned in step1 that is used in step 4 is no longer pointing to the same array!
 
-### Exploit Idea
-If we create a large-enough inline array called setup-array (simplified example):
+### Exploit Idea (high level)
+If we create a large inline array called setup-array (simplified example):
 ```css
 [setup_1] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] 
 ```
-In step1, elements2 stores the array pointer pointing to address of setup_1.
-Now we reach step 2, given that we manage to overwrite the getter of toId with a function that deletes setup-array and creates two array(a Uint8Array and a BigInt64Array) in the EXACT same place as setup-array. 
+Call swap() in a way that reads the elements pointer (step 1), then invokes a getter we control.
+In the getter, delete setup-array, force GC so the region becomes free, then allocate:
+- a Uint8Array (inline) at the freed slot, and
+- a BigUint64Array (out-of-line header) in the same region.
+Example layout of the exact same memory region after reallocation:
 ```css
 [Uint8Array] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [BigInt64Array] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] [ ] 
 ```
 
-When we reach step 4, we can end up swapping an element from Uint8Array with the pointer bits of the BigInt64Array since step4 uses the same pointer from step1 and allows swap anywhere within the length of the initial array. 
+When we reach step 4 and  we can end up swapping an element from Uint8Array with the pointer bits of the BigInt64Array since step4 uses the same pointer from step1 and allows swap anywhere within the length of the initial array. 
 
 Turns out we can delete the setup-array, call garbage collection to mark the space as free such that when we create Uint8Array and BigInt64Array they will be allocated to the newly freed space, thus taking the exact space initially taken by setup-array. 
 
-With alot of try and error and debugging this was my final exploit script achieving arb read and write to any address we want. 
+With a lot of try and error and debugging this was my final exploit script achieving arb read and write to any address we want. 
 
 ```js
 
