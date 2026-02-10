@@ -7,7 +7,7 @@
 
 ## Summary
 
-Given a world map with a lake marked in the center, the goal was to identify the lake's name. Many people rotated the image and used reverse image search; I found it by visually scanning and zooming — luck played a part!
+Given a world map with a lake marked in the center, the goal was to identify the lake's name. Rotating the image based on the compass below and a reverse image search finds the lake!
 
 ![Lake Image for Challenge 1](./geoint.png)
 
